@@ -28,6 +28,13 @@ We compare four Bayesian models that handle these properties differently.
 ### Winner: Model B
 The two-component mixture model achieved the best PSIS-LOO score. Real transport delays likely come from two distinct processes — routine operational variance and actual disruption events. The mixture captures this naturally.
 
+| Model | elpd_LOO | ΔLOOIC |
+|-------|----------|--------|
+| **Model B** | -6255.69 | 0.00 |
+| Model C | -6601.47 | 691.55 |
+| Model D | -6729.17 | 946.97 |
+| Model A | -6742.13 | 972.88 |
+
 ---
 
 ## Project Structure
@@ -36,6 +43,7 @@ The two-component mixture model achieved the best PSIS-LOO score. Real transport
 abda-transport-delays/
 ├── main.py                  ← run this to execute the full pipeline
 ├── requirements.txt
+├── Dockerfile
 ├── src/
 │   ├── data_loader.py       ← loads dataset from Kaggle or local CSV
 │   ├── preprocessing.py     ← feature engineering and design matrices
@@ -62,8 +70,23 @@ source venv/Scripts/activate  # Windows
 # source venv/bin/activate    # macOS/Linux
 
 pip install -r requirements.txt
+```
+
+### Windows users only
+Before installing CmdStan, install Strawberry Perl which provides the C++ build tools required to compile Stan models:
+1. Download and install from https://strawberryperl.com/
+2. Restart your terminal after installing
+3. Then run:
+```bash
 python -m cmdstanpy.install_cmdstan
 ```
+
+### macOS/Linux
+```bash
+python -m cmdstanpy.install_cmdstan
+```
+
+---
 
 ## Dataset
 
@@ -78,13 +101,16 @@ python main.py
 
 # Use local CSV
 python main.py --csv data/raw/transport_delays.csv
+
+# Force recompile Stan models
+python main.py --recompile
 ```
 
 ---
 
 ## Key Concepts
 
-**PSIS-LOO** — measures how well the model predicts unseen data. Higher = better.
+**PSIS-LOO** — measures how well the model predicts unseen data. Higher elpd = better.
 
 **Pareto-k** — reliability check for LOO. Values below 0.5 = trustworthy estimates.
 

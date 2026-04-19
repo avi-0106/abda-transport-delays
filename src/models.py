@@ -4,6 +4,7 @@ models.py - Compiles and fits the four Stan models.
 from pathlib import Path
 import arviz as az
 import numpy as np
+import xarray as xr
 from cmdstanpy import CmdStanModel
 from src.preprocessing import ModelData
 
@@ -22,7 +23,7 @@ SAMPLE_ARGS = dict(
 def _load_model(stan_path, force_recompile=False):
     exe_path = stan_path.with_suffix(".exe")
     if exe_path.exists() and not force_recompile:
-        return CmdStanModel(stan_file=str(stan_path), exe_file=str(exe_path), compile=False)
+        return CmdStanModel(exe_file=str(exe_path))
     return CmdStanModel(stan_file=str(stan_path))
 
 def _divergence_count(fit):
@@ -51,11 +52,15 @@ def _make_idata(fit, observed_y, feature_vars=None, feature_names=None,
         posterior=fit, log_likelihood="log_lik",
         observed_data={"y": observed_y}, coords=coords, dims=dims,
     )
-    idata.add_groups({"posterior_predictive": {"y_rep": _reshape_draws(fit, "y_rep")}})
+    y_rep_data = _reshape_draws(fit, "y_rep")
+    n_chains, n_draws, n_obs = y_rep_data.shape
+    idata.posterior_predictive = xr.Dataset({
+        "y_rep": xr.DataArray(y_rep_data, dims=["chain", "draw", "obs_id"],
+                              coords={"obs_id": np.arange(n_obs)})
+    })
     return idata
 
 def _adjust_loglik(idata, y):
-    import xarray as xr
     observed = xr.DataArray(y, dims=["obs_id"], coords={"obs_id": np.arange(len(y))})
     ll_name = next(iter(idata.log_likelihood.data_vars))
     idata.log_likelihood[ll_name] = idata.log_likelihood[ll_name] - observed
@@ -70,8 +75,7 @@ def fit_model_a(data, force_recompile=False):
         inits={"alpha": data.y_bar, "beta": np.zeros(data.K), "sigma": 0.5, "nu_minus2": 10.0},
         **SAMPLE_ARGS,
     )
-    idata = _make_idata(fit, data.y, feature_vars=["beta"], feature_names=data.feature_names)
-    return _adjust_loglik(idata, data.y)
+    return _make_idata(fit, data.y, feature_vars=["beta"], feature_names=data.feature_names)
 
 def fit_model_b(data, force_recompile=False):
     """Model B: Two-regime Student-t mixture regression."""
@@ -83,8 +87,7 @@ def fit_model_b(data, force_recompile=False):
                "sigma1": 0.4, "sigma2": 0.8, "w": 0.5, "nu1_minus2": 10.0, "nu2_minus2": 10.0},
         **SAMPLE_ARGS,
     )
-    idata = _make_idata(fit, data.y, feature_vars=["beta1"], feature_names=data.feature_names)
-    return _adjust_loglik(idata, data.y)
+    return _make_idata(fit, data.y, feature_vars=["beta1"], feature_names=data.feature_names)
 
 def fit_model_c(data, force_recompile=False):
     """Model C: Hurdle lognormal regression."""

@@ -15,13 +15,21 @@ def check_convergence(idata, model_name=""):
                                     "sigma_d", "tau_route"])
     cols = ["mean", "sd"] + [c for c in summary.columns if c.startswith("hdi_")] + ["r_hat", "ess_bulk"]
     summary = summary[[c for c in cols if c in summary.columns]]
+
     if model_name:
         print(f"\n--- Convergence: {model_name} ---")
-    bad = summary[summary["r_hat"] > 1.01] if "r_hat" in summary.columns else pd.DataFrame()
+
+    if "r_hat" in summary.columns:
+        r_hat_numeric = pd.to_numeric(summary["r_hat"], errors="coerce")
+        bad = summary[r_hat_numeric > 1.01]
+    else:
+        bad = pd.DataFrame()
+
     if not bad.empty:
         warnings.warn(f"{model_name}: {len(bad)} parameter(s) with R-hat > 1.01")
     else:
         print("  All R-hat values <= 1.01 ✓")
+
     return summary
 
 
@@ -39,7 +47,7 @@ def loo_comparison(model_dict):
 
     rows = []
     for name, loo in loo_results.items():
-        elpd = float(loo.elpd_loo)
+        elpd = float(loo.elpd)
         se = float(loo.se)
         rows.append({"Model": name, "elpd_loo": elpd, "SE": se,
                      "LOOIC": -2.0 * elpd, "SE(LOOIC)": 2.0 * se})
@@ -54,7 +62,10 @@ def loo_comparison(model_dict):
     for name in loo_table["Model"]:
         if name not in loo_results:
             continue
-        k = np.asarray(loo_results[name].pareto_k).ravel()
+        try:
+            k = np.asarray(loo_results[name].pareto_k).ravel()
+        except AttributeError:
+            k = np.asarray(loo_results[name]["pareto_k"]).ravel()
         n = len(k)
         pareto_rows.append({
             "Model": name, "n_obs": n,

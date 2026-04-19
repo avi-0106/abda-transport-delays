@@ -3,6 +3,8 @@ visualisation.py - All plots for the transport delay analysis.
 """
 import math
 import arviz as az
+import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -88,7 +90,7 @@ def eda_overview(delay, y, save_path=None):
         plt.tight_layout()
         if save_path:
             fig.savefig(save_path, bbox_inches="tight", dpi=150)
-        plt.show()
+        plt.close(fig)
 
 
 def plot_ppc_delay(idata, delay, title, zero_mode="approx", save_path=None):
@@ -141,7 +143,7 @@ def plot_ppc_delay(idata, delay, title, zero_mode="approx", save_path=None):
         fig.suptitle(title, fontsize=15, fontweight="bold", y=0.99)
         if save_path:
             fig.savefig(save_path, bbox_inches="tight", dpi=150)
-        plt.show()
+        plt.close(fig)
 
 
 def plot_ppc_kde(idata, title, save_path=None):
@@ -169,23 +171,22 @@ def plot_ppc_kde(idata, title, save_path=None):
         _apply_style(ax)
         if save_path:
             fig.savefig(save_path, bbox_inches="tight", dpi=150)
-        plt.show()
+        plt.close(fig)
 
 
 def plot_trace(idata, var_names, title, last_draws=500, figsize=(14, 8), save_path=None):
     """MCMC trace plots — chains should overlap like a hairy caterpillar."""
+    if not var_names:
+        return
     idata_slice = idata.sel(draw=slice(-last_draws, None))
     with plt.rc_context(STYLE):
-        axes = az.plot_trace(idata_slice, var_names=var_names, compact=False, figsize=figsize)
-        fig = np.asarray(axes).ravel()[0].figure
-        for ax in np.asarray(axes).ravel():
-            if ax is not None:
-                _apply_style(ax)
+        az.plot_trace(idata_slice, var_names=var_names)
+        fig = plt.gcf()
         fig.suptitle(title, fontsize=15, fontweight="bold", y=0.995)
         fig.subplots_adjust(top=0.92, hspace=0.52, wspace=0.20)
         if save_path:
             fig.savefig(save_path, bbox_inches="tight", dpi=150)
-        plt.show()
+        plt.close(fig)
 
 
 def plot_energy(model_dict, save_path=None):
@@ -198,21 +199,33 @@ def plot_energy(model_dict, save_path=None):
         fig, axes = plt.subplots(n_rows, n_cols,
                                  figsize=(7.0 * n_cols, 4.8 * n_rows), squeeze=False)
         for ax, name in zip(axes.ravel(), names):
-            az.plot_energy(model_dict[name], ax=ax)
-            _apply_style(ax)
+            energy = np.asarray(model_dict[name].sample_stats["energy"])  # (chain, draw)
+            marginal = (energy - energy.mean()).ravel()
+            transition = np.diff(energy, axis=1).ravel()
+            x = np.linspace(min(marginal.min(), transition.min()),
+                            max(marginal.max(), transition.max()), 300)
+            kde_m = gaussian_kde(marginal)(x)
+            ax.fill_between(x, kde_m, alpha=0.25, color="#0f766e")
+            ax.plot(x, kde_m, color="#0f766e", linewidth=2, label="Marginal energy")
+            if np.std(transition) > 1e-8:
+                ax.plot(x, gaussian_kde(transition)(x), color="#c67c2f",
+                        linewidth=2, label="Energy transition")
+            ax.set_xlabel("Centered energy")
+            ax.legend(fontsize=9)
             ax.set_title(name, fontsize=13, fontweight="bold")
+            _apply_style(ax)
         for ax in axes.ravel()[n:]:
             ax.axis("off")
         fig.suptitle("Energy diagnostics", fontsize=14, fontweight="bold", y=0.995)
         fig.subplots_adjust(top=0.90, hspace=0.40, wspace=0.26)
         if save_path:
             fig.savefig(save_path, bbox_inches="tight", dpi=150)
-        plt.show()
+        plt.close(fig)
 
 
 def plot_loo_weights(model_dict, save_path=None):
     """LOO stacking weights — higher means better predictive contribution."""
-    cmp = az.compare(model_dict, ic="loo")
+    cmp = az.compare(model_dict)
     weights = cmp["weight"].sort_values(ascending=True)
     with plt.rc_context(STYLE):
         fig, ax = plt.subplots(figsize=(7, 4), facecolor=STYLE["figure.facecolor"])
@@ -225,7 +238,7 @@ def plot_loo_weights(model_dict, save_path=None):
         _apply_style(ax)
         if save_path:
             fig.savefig(save_path, bbox_inches="tight", dpi=150)
-        plt.show()
+        plt.close(fig)
 
 
 def plot_zero_share(model_dict, delay, save_path=None):
@@ -253,7 +266,7 @@ def plot_zero_share(model_dict, delay, save_path=None):
         _apply_style(ax)
         if save_path:
             fig.savefig(save_path, bbox_inches="tight", dpi=150)
-        plt.show()
+        plt.close(fig)
 
 
 def plot_pareto_k(loo_results, save_path=None):
@@ -283,7 +296,7 @@ def plot_pareto_k(loo_results, save_path=None):
         fig.subplots_adjust(top=0.90, hspace=0.35, wspace=0.26)
         if save_path:
             fig.savefig(save_path, bbox_inches="tight", dpi=150)
-        plt.show()
+        plt.close(fig)
 
 
 def plot_ccdf(model_dict, save_path=None):
@@ -334,4 +347,4 @@ def plot_ccdf(model_dict, save_path=None):
         fig.subplots_adjust(top=0.90, hspace=0.36, wspace=0.26)
         if save_path:
             fig.savefig(save_path, bbox_inches="tight", dpi=150)
-        plt.show()
+        plt.close(fig)

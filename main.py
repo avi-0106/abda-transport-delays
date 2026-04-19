@@ -59,9 +59,15 @@ def run(local_csv=None, force_recompile=False):
     for name, idata in fitted.items():
         viz.plot_ppc_kde(idata, name,
                          save_path=FIGURES_DIR / f"ppc_kde_{name.replace(' ', '_').lower()}.png")
-        viz.plot_trace(idata, ["alpha", "sigma"] if "alpha" in idata.posterior else [],
-                       f"{name} — trace",
-                       save_path=FIGURES_DIR / f"trace_{name.replace(' ', '_').lower()}.png")
+
+    viz.plot_trace(fitted["Model A"], ["alpha", "sigma", "nu"],
+                   "Model A — trace", save_path=FIGURES_DIR / "trace_model_a.png")
+    viz.plot_trace(fitted["Model B"], ["alpha1", "delta", "sigma1", "sigma2", "w"],
+                   "Model B — trace", save_path=FIGURES_DIR / "trace_model_b.png")
+    viz.plot_trace(fitted["Model C"], ["alpha_z", "alpha_d", "sigma_d"],
+                   "Model C — trace", save_path=FIGURES_DIR / "trace_model_c.png")
+    viz.plot_trace(fitted["Model D"], ["alpha", "tau_route", "sigma", "nu"],
+                   "Model D — trace", save_path=FIGURES_DIR / "trace_model_d.png")
 
     # 6. Model comparison
     print("\n--- Model comparison (PSIS-LOO) ---")
