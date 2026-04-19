@@ -2,7 +2,7 @@
 
 Bayesian regression analysis comparing four probabilistic models for predicting public transport departure delays. Implemented in **Stan** via **CmdStanPy**, evaluated using **PSIS-LOO cross-validation**.
 
-> This is a refactored version of a university project (Advanced Bayesian Data Analysis, TU Dortmund). The original single-file notebook is preserved in `notebooks/original_analysis.ipynb`. This version restructures the analysis into a proper Python package with modular source files and a reproducible pipeline.
+> This is a refactored version of a university project (Applied Bayesian Data Analysis, TU Dortmund). The original single-file notebook is preserved in `notebooks/original_analysis.ipynb`. This version restructures the analysis into a proper Python package with modular source files and a reproducible pipeline.
 
 ---
 
@@ -120,4 +120,4 @@ python main.py --recompile
 
 ## Authors
 Abhishek Mishra · Siddhant Mishra  
-Advanced Bayesian Data Analysis — TU Dortmund University
+Applied Bayesian Data Analysis — TU Dortmund University
