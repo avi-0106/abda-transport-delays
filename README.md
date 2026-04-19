@@ -31,3 +31,67 @@ The two-component mixture model achieved the best PSIS-LOO score. Real transport
 ---
 
 ## Project Structure
+
+```
+abda-transport-delays/
+├── main.py                  ← run this to execute the full pipeline
+├── requirements.txt
+├── src/
+│   ├── data_loader.py       ← loads dataset from Kaggle or local CSV
+│   ├── preprocessing.py     ← feature engineering and design matrices
+│   ├── models.py            ← fits all four Stan models
+│   ├── diagnostics.py       ← R-hat, LOO, Pareto-k checks
+│   └── visualisation.py     ← all plots
+├── models/                  ← Stan model files (.stan)
+├── notebooks/
+│   └── original_analysis.ipynb  ← original notebook for reference
+├── data/raw/                ← place dataset here (see below)
+└── results/figures/         ← all plots saved here after running
+```
+
+---
+
+## Setup
+
+```bash
+git clone https://github.com/avi-0106/abda-transport-delays.git
+cd abda-transport-delays
+
+python -m venv venv
+source venv/Scripts/activate  # Windows
+# source venv/bin/activate    # macOS/Linux
+
+pip install -r requirements.txt
+python -m cmdstanpy.install_cmdstan
+```
+
+## Dataset
+
+Download from Kaggle and place in `data/raw/`:
+[Public Transport Delays with Weather and Events](https://www.kaggle.com/datasets/khushikyad001/public-transport-delays-with-weather-and-events)
+
+## Run
+
+```bash
+# Auto-download from Kaggle
+python main.py
+
+# Use local CSV
+python main.py --csv data/raw/transport_delays.csv
+```
+
+---
+
+## Key Concepts
+
+**PSIS-LOO** — measures how well the model predicts unseen data. Higher = better.
+
+**Pareto-k** — reliability check for LOO. Values below 0.5 = trustworthy estimates.
+
+**Partial pooling** — each route gets its own intercept, shrunk toward the global mean. Sparse routes borrow strength from the full dataset.
+
+---
+
+## Authors
+Abhishek Mishra · Siddhant Mishra  
+Advanced Bayesian Data Analysis — TU Dortmund University
